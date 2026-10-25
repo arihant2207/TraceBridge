@@ -48,3 +48,32 @@ class LoadedDataset(BaseModel):
     ignored_columns: list[str]
     trim_count: int
     rows: list[RowData]
+
+
+class SourceRef(BaseModel):
+    """Reference to an input CSV row supporting a finding."""
+
+    file: str
+    row_number: int
+    record_id: str
+    fields: dict[str, Any] = Field(default_factory=dict)
+
+
+class Finding(BaseModel):
+    """A deterministic validation finding emitted by a rule."""
+
+    rule_id: str
+    variant: str | None = None
+    severity: str
+    finding_class: str
+    entity_key: str
+    description: str
+    expected: str | None = None
+    actual: str | None = None
+    source_refs: list[SourceRef] = Field(default_factory=list)
+    truncated: bool = False
+
+    def model_post_init(self, __context: Any) -> None:
+        if len(self.source_refs) > 20:
+            object.__setattr__(self, "source_refs", self.source_refs[:20])
+            object.__setattr__(self, "truncated", True)

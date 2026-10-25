@@ -1,0 +1,63 @@
+{
+  "R01": {
+    "name": "Missing/unusable required field",
+    "severity": "high",
+    "finding_class": "MISSING_EVIDENCE"
+  },
+  "R02": {
+    "name": "Duplicate identifiers",
+    "severity": "high",
+    "finding_class": "VALIDATION_FAILURE"
+  },
+  "R03": {
+    "name": "Invalid numeric value",
+    "severity": "medium",
+    "finding_class": "VALIDATION_FAILURE"
+  },
+  "R04": {
+    "name": "Invalid timestamp",
+    "severity": "medium",
+    "finding_class": "VALIDATION_FAILURE"
+  },
+  "R05": {
+    "name": "Unknown requirement reference",
+    "severity": "high",
+    "finding_class": "VALIDATION_FAILURE"
+  },
+  "R06": {
+    "name": "Unknown run reference",
+    "severity": "medium",
+    "finding_class": "VALIDATION_FAILURE"
+  },
+  "R07": {
+    "name": "Missing requirement-to-test link",
+    "severity": "high",
+    "finding_class": "MISSING_EVIDENCE"
+  },
+  "R08": {
+    "name": "Missing required telemetry evidence",
+    "severity": "high",
+    "finding_class": "MISSING_EVIDENCE"
+  },
+  "R09": {
+    "name": "Threshold violation",
+    "severity": "high",
+    "finding_class": "OBSERVATION"
+  },
+  "R10": {
+    "name": "Status vs measurement contradiction",
+    "severity": "critical",
+    "finding_class": "VALIDATION_FAILURE"
+  },
+  "R11": {
+    "name": "Invalid unit combination",
+    "severity": "high",
+    "finding_class": "VALIDATION_FAILURE"
+  },
+  "R12": {
+    "name": "Reported value inconsistent with source",
+    "severity": "high",
+    "finding_class": "VALIDATION_FAILURE",
+    "tolerance": "0.05"
+  }
+}
