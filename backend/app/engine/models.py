@@ -1,5 +1,6 @@
 """Core models for TraceBridge validation engine."""
 
+from decimal import Decimal
 from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -62,6 +63,7 @@ class SourceRef(BaseModel):
 class Finding(BaseModel):
     """A deterministic validation finding emitted by a rule."""
 
+    id: str | None = None
     rule_id: str
     variant: str | None = None
     severity: str
@@ -88,4 +90,21 @@ class Evaluation(BaseModel):
     n_in_window: int = 0
     n_out_of_window: int = 0
     blocked_by: list[str] = Field(default_factory=list)
+
+
+class CheckScore(BaseModel):
+    """Breakdown of an individual rule check in the quality score."""
+
+    rule_id: str
+    applicable: int
+    failing: int
+    pass_rate: Decimal | None = None
+
+
+class ScoreResult(BaseModel):
+    """Quality score result across all 11 evaluated checks."""
+
+    score: Decimal
+    checks: dict[str, CheckScore]
+    applicable_checks_count: int
 
