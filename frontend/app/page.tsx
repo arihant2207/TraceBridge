@@ -36,20 +36,22 @@ export default function AnalysesListPage() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#ffffff' }}>Validation Analyses</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+            Validation Analyses
+          </h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.25rem 0 0 0' }}>
             Deterministic engineering evidence validation runs
           </p>
         </div>
         <Link href="/analyses/new" className="btn btn-primary">
-          + New Analysis
+          New analysis
         </Link>
       </div>
 
       {error && (
-        <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>
+        <div className="alert alert-error">
           <div className="alert-title">[{error.code}] Failed to load analyses</div>
           <div>{error.message}</div>
           {error.details.length > 0 && (
@@ -63,91 +65,79 @@ export default function AnalysesListPage() {
       )}
 
       {loading ? (
-        <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+        <div className="card" style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
           Loading analyses...
         </div>
       ) : analyses.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📋</div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>No Analyses Found</h2>
-          <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', maxWidth: '450px', margin: '0 auto 1.5rem' }}>
-            Run an analysis using the preloaded clean or fault sample datasets, or upload your own engineering CSVs.
+        <div className="card" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>
+            No analyses found
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', maxWidth: '420px', margin: '0 auto 1.25rem auto' }}>
+            Run an analysis using the preloaded clean or fault sample datasets, or upload your own engineering CSV files.
           </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-            <Link href="/analyses/new" className="btn btn-primary">
-              Run Sample or Upload Files
-            </Link>
-          </div>
+          <Link href="/analyses/new" className="btn btn-primary">
+            New analysis
+          </Link>
         </div>
       ) : (
-        <div className="card" style={{ padding: 0 }}>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Analysis ID</th>
-                  <th>Created At (UTC)</th>
-                  <th>Records</th>
-                  <th>Findings</th>
-                  <th>Score & Gate</th>
-                  <th>Findings Digest</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analyses.map((anl) => {
-                  const isClean = anl.gate === 'NOT_BLOCKED';
-                  // Score coloring rule: NEVER styled green unless gate is NOT_BLOCKED
-                  let scoreStyle: React.CSSProperties = { fontWeight: 700, fontFamily: 'var(--font-mono)' };
-                  if (isClean) {
-                    scoreStyle.color = '#34d399';
-                  } else if (anl.gate.includes('CRITICAL')) {
-                    scoreStyle.color = '#f87171';
-                  } else {
-                    scoreStyle.color = '#fbbf24';
-                  }
+        <div className="table-container">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Analysis ID</th>
+                <th>Created (UTC)</th>
+                <th>Records</th>
+                <th>Findings</th>
+                <th>Score & Gate</th>
+                <th>Findings Digest</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analyses.map((anl) => {
+                let scoreColor = 'var(--text-primary)';
+                if (anl.gate.includes('CRITICAL')) {
+                  scoreColor = 'var(--critical-text)';
+                } else if (anl.gate.includes('HIGH')) {
+                  scoreColor = 'var(--amber-text)';
+                }
 
-                  return (
-                    <tr key={anl.id}>
-                      <td className="mono" style={{ fontWeight: 600 }}>
-                        <Link href={`/analyses/${anl.id}`} style={{ color: 'var(--accent-cyan)' }}>
-                          {anl.id}
-                        </Link>
-                      </td>
-                      <td style={{ color: 'var(--text-secondary)' }}>
-                        {anl.created_at.replace('T', ' ').slice(0, 19)}
-                      </td>
-                      <td className="mono">{anl.records_processed}</td>
-                      <td>
-                        <span
-                          style={{
-                            fontWeight: 600,
-                            color: anl.finding_count > 0 ? '#fca5a5' : '#34d399',
-                          }}
-                        >
-                          {anl.finding_count}
+                return (
+                  <tr key={anl.id}>
+                    <td className="mono" style={{ fontWeight: 600 }}>
+                      <Link href={`/analyses/${anl.id}`}>
+                        {anl.id}
+                      </Link>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>
+                      {anl.created_at.replace('T', ' ').slice(0, 19)}
+                    </td>
+                    <td className="mono">{anl.records_processed}</td>
+                    <td className="mono" style={{ fontWeight: 500, color: anl.finding_count > 0 ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                      {anl.finding_count}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                        <span className="mono" style={{ fontWeight: 600, color: scoreColor }}>
+                          {anl.quality_score}
                         </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={scoreStyle}>{anl.quality_score}</span>
-                          <GateBadge gate={anl.gate} />
-                        </div>
-                      </td>
-                      <td className="mono" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                        {anl.findings_digest ? `${anl.findings_digest.slice(0, 12)}...` : '—'}
-                      </td>
-                      <td>
-                        <Link href={`/analyses/${anl.id}`} className="btn btn-secondary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem' }}>
-                          View Results →
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <GateBadge gate={anl.gate} />
+                      </div>
+                    </td>
+                    <td className="mono" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                      {anl.findings_digest ? `${anl.findings_digest.slice(0, 12)}...` : '—'}
+                    </td>
+                    <td>
+                      <Link href={`/analyses/${anl.id}`} className="btn btn-secondary" style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem' }}>
+                        View results
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

@@ -5,22 +5,23 @@ interface GateBadgeProps {
 }
 
 export function GateBadge({ gate }: GateBadgeProps) {
-  const normalized = (gate || '').toLowerCase();
-  let className = 'gate-badge';
+  const isNotBlocked = gate === 'NOT_BLOCKED';
+  const isCritical = gate.includes('CRITICAL');
+  const isHigh = gate.includes('HIGH');
 
-  if (normalized.includes('critical')) {
-    className += ' gate-blocked_critical';
-  } else if (normalized.includes('high')) {
-    className += ' gate-blocked_high';
-  } else if (normalized.includes('not_blocked')) {
-    className += ' gate-not_blocked';
-  } else {
-    className += ' gate-blocked_high';
+  let badgeClass = 'gate-badge gate-neutral';
+  if (isCritical) {
+    badgeClass = 'gate-badge gate-critical';
+  } else if (isHigh) {
+    badgeClass = 'gate-badge gate-high';
+  } else if (isNotBlocked) {
+    badgeClass = 'gate-badge gate-not-blocked';
   }
 
   return (
-    <span className={className}>
-      <span style={{ fontSize: '0.65rem' }}>●</span> {gate}
+    <span className="gate-wrapper">
+      <span className={badgeClass}>{gate}</span>
+      {isNotBlocked && <span className="gate-note">Not an approval.</span>}
     </span>
   );
 }
@@ -31,42 +32,37 @@ interface ScoreGateHeaderProps {
 }
 
 export function ScoreGateHeader({ score, gate }: ScoreGateHeaderProps) {
-  const isNotBlocked = gate === 'NOT_BLOCKED';
+  const isCritical = gate.includes('CRITICAL');
+  const isHigh = gate.includes('HIGH');
 
-  // Hard Rule: The score is NEVER styled green unless the gate is NOT_BLOCKED
-  let scoreClass = 'score-value';
-  if (isNotBlocked) {
-    scoreClass += ' score-clean';
-  } else if (gate.includes('CRITICAL')) {
-    scoreClass += ' score-blocked';
-  } else if (gate.includes('HIGH')) {
-    scoreClass += ' score-warning';
-  } else {
-    scoreClass += ' score-neutral';
+  // Hard Rule: The score is NEVER green.
+  let scoreClass = 'score-value score-neutral';
+  if (isCritical) {
+    scoreClass = 'score-value score-critical';
+  } else if (isHigh) {
+    scoreClass = 'score-value score-high';
   }
 
   return (
-    <div className="score-gate-container">
-      <div className="score-box">
-        <span className="score-label">Quality Score</span>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.4rem' }}>
-          <span className={scoreClass}>{score}</span>
-          <span style={{ color: 'var(--text-muted)', fontSize: '1rem', fontFamily: 'var(--font-mono)' }}>
-            / 100.0
-          </span>
+    <div className="score-gate-card">
+      <div className="score-gate-metrics">
+        <div className="score-block">
+          <div className="metric-label">Quality Score</div>
+          <div className="metric-value-row">
+            <span className={scoreClass}>{score}</span>
+            <span className="score-scale">/ 100.0</span>
+          </div>
+        </div>
+
+        <div className="metric-divider" />
+
+        <div className="gate-block">
+          <div className="metric-label">Gate Status</div>
+          <div style={{ marginTop: '0.2rem' }}>
+            <GateBadge gate={gate} />
+          </div>
         </div>
       </div>
-
-      <div style={{ height: '40px', width: '1px', backgroundColor: 'var(--border-subtle)' }} />
-
-      <div className="score-box">
-        <span className="score-label">Gate Status</span>
-        <div style={{ marginTop: '0.25rem' }}>
-          <GateBadge gate={gate} />
-        </div>
-      </div>
-
-      <div style={{ flex: 1 }} />
 
       <div className="score-disclaimer">
         This score measures evidence quality only; it is not a safety or certification result.

@@ -197,7 +197,7 @@ export default function AnalysisDetailPage() {
 
   if (loadingAnalysis) {
     return (
-      <div className="card" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-muted)' }}>
+      <div className="card" style={{ textAlign: 'center', padding: '3rem 1rem', color: 'var(--text-muted)' }}>
         Loading analysis {analysisId}...
       </div>
     );
@@ -206,8 +206,8 @@ export default function AnalysisDetailPage() {
   if (analysisError || !analysis) {
     return (
       <div>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
             ← Back to Dashboard
           </Link>
         </div>
@@ -225,6 +225,7 @@ export default function AnalysisDetailPage() {
       </div>
     );
   }
+
   const scoreChecks = (
     analysis?.score_breakdown &&
     typeof analysis.score_breakdown === 'object' &&
@@ -234,8 +235,6 @@ export default function AnalysisDetailPage() {
       : {}
   );
   const unresolvedNote = (analysis as unknown as { unresolved?: string | string[] }).unresolved;
-
-  const isGateBlocked = analysis.gate !== 'NOT_BLOCKED';
 
   const COVERAGE_STATUS_ORDER = [
     'NOT_COVERED',
@@ -266,21 +265,21 @@ export default function AnalysisDetailPage() {
     }
   }
 
+  // Meaning-driven colors only (no green)
   const getCoverageColor = (status: string) => {
     switch (status) {
       case 'CONTRADICTORY':
-        return '#ef4444';
+        return '#dc2626'; // Muted red
       case 'VIOLATED':
-        return '#f97316';
+        return '#d97706'; // Amber/orange
       case 'INCONCLUSIVE':
-        return '#f59e0b';
+        return '#f59e0b'; // Amber
       case 'NOT_EXECUTED':
-        return '#64748b';
+        return '#64748b'; // Slate gray
       case 'NOT_COVERED':
-        return '#71717a';
+        return '#9ca3af'; // Neutral gray
       case 'SATISFIED':
-        // Never colour anything green when the gate is blocked
-        return isGateBlocked ? '#60a5fa' : '#10b981';
+        return '#2563eb'; // Muted blue - never green
       default:
         return '#94a3b8';
     }
@@ -289,36 +288,36 @@ export default function AnalysisDetailPage() {
   return (
     <div>
       {/* Top Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
               ← Back to Dashboard
             </Link>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#ffffff', marginTop: '0.25rem' }}>
-              Analysis <span className="mono" style={{ color: 'var(--accent-cyan)' }}>{analysis.id}</span>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0.25rem 0 0 0' }}>
+              Analysis <span className="mono">{analysis.id}</span>
             </h1>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', marginTop: '0.25rem' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '0.2rem' }}>
               Created: {analysis.created_at.replace('T', ' ').slice(0, 19)} UTC | Records Processed: {analysis.records_processed}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <Link href={`/analyses/${analysis.id}/report`} className="btn btn-secondary">
-              📄 View Report (MD)
+              View report (Markdown)
             </Link>
-            <Link href="/analyses/new" className="btn btn-secondary">
-              + New Run
+            <Link href="/analyses/new" className="btn btn-primary">
+              New analysis
             </Link>
           </div>
         </div>
       </div>
 
-      {/* (a) Score and Gate Side by Side */}
+      {/* Score and Gate */}
       <ScoreGateHeader score={analysis.quality_score} gate={analysis.gate} />
 
       {/* UNRESOLVED note if provided by API */}
       {unresolvedNote && (
-        <div className="alert alert-warning" style={{ marginBottom: '1.5rem' }}>
+        <div className="alert alert-warning">
           <div className="alert-title">UNRESOLVED Engineering Verification Questions</div>
           {Array.isArray(unresolvedNote) ? (
             <ul className="alert-details-list">
@@ -332,26 +331,26 @@ export default function AnalysisDetailPage() {
         </div>
       )}
 
-      {/* (b) Requirement Coverage Section */}
+      {/* Requirement Coverage Section */}
       <div className="card">
         <div className="card-title">
-          <span>🎯 Requirement Coverage</span>
+          <span>Requirement Coverage</span>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
-            Status distribution & per-test verification
+            Status distribution and verification results
           </span>
         </div>
 
         {loadingCoverage ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
             Loading requirement coverage data...
           </div>
         ) : coverageError ? (
-          <div className="alert alert-error" style={{ margin: '1rem 0' }}>
+          <div className="alert alert-error" style={{ margin: '0.75rem 0' }}>
             <div className="alert-title">[{coverageError.code}] Failed to load coverage</div>
             <div>{coverageError.message}</div>
           </div>
         ) : totalRequirements === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
             No requirement coverage records recorded for this analysis.
           </div>
         ) : (
@@ -383,13 +382,14 @@ export default function AnalysisDetailPage() {
               {COVERAGE_STATUS_ORDER.map((status) => {
                 const count = coverageCounts[status] || 0;
                 const color = getCoverageColor(status);
+                const label = status === 'SATISFIED' ? 'satisfied by recorded evidence' : status;
                 return (
                   <div key={status} className="coverage-legend-item">
                     <span className="coverage-legend-color" style={{ backgroundColor: color }} />
-                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {status === 'SATISFIED' ? 'SATISFIED (satisfied by recorded evidence)' : status}:
+                    <span style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>
+                      {label}:
                     </span>
-                    <span className="mono" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="mono" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                       {count}
                     </span>
                   </div>
@@ -398,7 +398,7 @@ export default function AnalysisDetailPage() {
             </div>
 
             {/* Requirements Table */}
-            <div className="table-container" style={{ marginTop: '1.25rem' }}>
+            <div className="table-container" style={{ marginTop: '1rem' }}>
               <table className="data-table">
                 <thead>
                   <tr>
@@ -410,23 +410,23 @@ export default function AnalysisDetailPage() {
                 <tbody>
                   {coverageEntries.map(([reqId, status]) => {
                     const color = getCoverageColor(status);
-                    const label = status === 'SATISFIED' ? 'SATISFIED (satisfied by recorded evidence)' : status;
+                    const label = status === 'SATISFIED' ? 'satisfied by recorded evidence' : status;
                     return (
                       <tr key={reqId}>
-                        <td className="mono" style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                        <td className="mono" style={{ fontWeight: 600 }}>
                           {reqId}
                         </td>
                         <td>
                           <span
                             style={{
                               display: 'inline-block',
-                              padding: '0.2rem 0.55rem',
+                              padding: '0.15rem 0.45rem',
                               borderRadius: '4px',
                               fontSize: '0.75rem',
-                              fontWeight: 600,
-                              backgroundColor: `${color}22`,
-                              border: `1px solid ${color}66`,
+                              fontWeight: 500,
                               color: color,
+                              border: `1px solid ${color}44`,
+                              backgroundColor: `${color}11`,
                             }}
                           >
                             {label}
@@ -443,10 +443,10 @@ export default function AnalysisDetailPage() {
         )}
       </div>
 
-      {/* (c) 11 Quality Checks Breakdown */}
+      {/* Quality Score Checks (11 Scored Rules) */}
       <div className="card">
         <div className="card-title">
-          <span>📊 Quality Score Checks (11 Scored Rules)</span>
+          <span>Quality Score Checks (11 rules)</span>
           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
             Equal weights | R09 excluded
           </span>
@@ -460,13 +460,13 @@ export default function AnalysisDetailPage() {
                 <div className="check-header">
                   <span className="check-rule">{ruleId}</span>
                   {isFailing ? (
-                    <span className="check-fail">✕ {check.failing} Fail</span>
+                    <span className="check-fail">{check.failing} failing</span>
                   ) : (
-                    <span className="check-pass">✓ Clean</span>
+                    <span className="check-pass">Clean</span>
                   )}
                 </div>
                 <div className="check-counts">
-                  Applicable: <strong>{check.applicable}</strong> | Failing: <strong>{check.failing}</strong>
+                  Applicable: {check.applicable} | Failing: {check.failing}
                 </div>
               </div>
             );
@@ -474,13 +474,13 @@ export default function AnalysisDetailPage() {
         </div>
       </div>
 
-      {/* (c) Provenance */}
+      {/* Provenance & Datasets */}
       <div className="card">
-        <div className="card-title">🛡️ Provenance & Datasets</div>
-        <div className="detail-grid" style={{ marginBottom: '1rem' }}>
+        <div className="card-title">Provenance & Datasets</div>
+        <div className="detail-grid" style={{ marginBottom: '0.75rem' }}>
           <div className="detail-item">
             <div className="detail-item-label">Versions</div>
-            <div className="detail-item-value mono" style={{ fontSize: '0.8125rem' }}>
+            <div className="detail-item-value mono">
               app: {analysis.versions?.app || '1.0.0'} | engine: {analysis.versions?.engine || '1.0.0'} | python: {analysis.versions?.python || '3.13'}
             </div>
           </div>
@@ -540,14 +540,12 @@ export default function AnalysisDetailPage() {
         </div>
       </div>
 
-      {/* (d) Findings Table with Filters */}
+      {/* Findings Table with Filters */}
       <div className="card">
         <div className="card-title">
-          <span>
-            🔍 Findings (Total: {analysis.finding_count})
-          </span>
-          <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
-            Click a row to inspect source rows and record review
+          <span>Findings (Total: {analysis.finding_count})</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+            Select a row to inspect source evidence and record review
           </span>
         </div>
 
@@ -619,7 +617,7 @@ export default function AnalysisDetailPage() {
             <button
               type="button"
               className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
               onClick={() => {
                 setSeverityFilter('all');
                 setRuleFilter('all');
@@ -634,17 +632,16 @@ export default function AnalysisDetailPage() {
 
         {/* Findings Data Table */}
         {loadingFindings ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-muted)' }}>
             Loading findings...
           </div>
         ) : findings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>🔎</div>
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
             <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
               No findings match the selected filters.
             </div>
-            <div style={{ fontSize: '0.8125rem' }}>
-              Try resetting or adjusting the severity, rule, class, or review status filters above.
+            <div style={{ fontSize: '0.75rem' }}>
+              Adjust filter values above or click Reset Filters.
             </div>
           </div>
         ) : (
@@ -684,10 +681,10 @@ export default function AnalysisDetailPage() {
                       style={{ cursor: 'pointer' }}
                       onClick={() => setSelectedFinding(f)}
                     >
-                      <td className="mono" style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                      <td className="mono" style={{ fontWeight: 600 }}>
                         {f.id}
                       </td>
-                      <td className="mono" style={{ fontWeight: 600 }}>
+                      <td className="mono">
                         {f.rule_id}
                         {f.variant ? ` (${f.variant})` : ''}
                       </td>
@@ -696,7 +693,7 @@ export default function AnalysisDetailPage() {
                       </td>
                       <td>
                         <span className={clsClass}>
-                          {isObservation ? '🔍 OBSERVATION (Non-Gate)' : f.finding_class}
+                          {isObservation ? 'Observation' : f.finding_class}
                         </span>
                       </td>
                       <td className="mono">{f.entity_key}</td>
@@ -719,16 +716,16 @@ export default function AnalysisDetailPage() {
         )}
       </div>
 
-      {/* (e) Finding Detail Panel */}
+      {/* Finding Detail Panel */}
       {selectedFinding && (
         <div className="detail-panel" id="finding-detail-panel">
           <div className="detail-header">
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <span className="mono" style={{ fontSize: '1.25rem', fontWeight: 700, color: '#ffffff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span className="mono" style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {selectedFinding.id}
                 </span>
-                <span className="mono" style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                <span className="mono" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Rule {selectedFinding.rule_id}
                   {selectedFinding.variant ? ` (${selectedFinding.variant})` : ''}
                 </span>
@@ -738,9 +735,7 @@ export default function AnalysisDetailPage() {
                       ? 'severity-critical'
                       : selectedFinding.severity === 'high'
                       ? 'severity-high'
-                      : selectedFinding.severity === 'medium'
-                      ? 'severity-medium'
-                      : 'severity-low'
+                      : 'severity-medium'
                   }`}
                 >
                   {selectedFinding.severity}
@@ -755,11 +750,11 @@ export default function AnalysisDetailPage() {
                   }`}
                 >
                   {selectedFinding.finding_class === 'OBSERVATION'
-                    ? 'OBSERVATION (Not a Gate Item)'
+                    ? 'Observation'
                     : selectedFinding.finding_class}
                 </span>
               </div>
-              <div style={{ color: 'var(--text-secondary)', marginTop: '0.5rem', fontSize: '0.9375rem' }}>
+              <div style={{ color: 'var(--text-secondary)', marginTop: '0.4rem', fontSize: '0.875rem' }}>
                 {selectedFinding.description}
               </div>
             </div>
@@ -791,14 +786,14 @@ export default function AnalysisDetailPage() {
           {(() => {
             const sourceRefs = (selectedFinding.source_refs as SourceRefItem[] | undefined) || [];
             return (
-              <div style={{ marginTop: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+              <div style={{ marginTop: '1rem' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                   Source References ({sourceRefs.length}
                   {selectedFinding.truncated ? ', truncated at 20' : ''})
-                </h3>
+                </div>
 
                 {sourceRefs.length === 0 ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>No source row references recorded.</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>No source row references recorded.</div>
                 ) : (
                   sourceRefs.map((ref, idx) => {
                     const fileName = String(ref.file || '');
@@ -810,10 +805,8 @@ export default function AnalysisDetailPage() {
                       <div key={idx} className="source-ref-card">
                         <div className="source-ref-header">
                           <span>
-                            File: <strong style={{ color: 'var(--text-primary)' }}>{fileName}</strong> | Data Row:{' '}
-                            <strong className="mono" style={{ color: 'var(--text-primary)' }}>
-                              {rowNum}
-                            </strong>
+                            File: <strong>{fileName}</strong> | Row:{' '}
+                            <strong className="mono">{rowNum}</strong>
                           </span>
                           <span className="mono">Record ID: {recId}</span>
                         </div>
@@ -838,33 +831,33 @@ export default function AnalysisDetailPage() {
             );
           })()}
 
-          {/* Finding Review Form (PATCH /findings/{id}/review) */}
+          {/* Engineering Review Form */}
           <div
             style={{
-              marginTop: '1.5rem',
-              paddingTop: '1.25rem',
-              borderTop: '1px solid var(--border-subtle)',
+              marginTop: '1.25rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid var(--border-light)',
             }}
           >
-            <h3 style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.6rem' }}>
               Engineering Review (Isolated Audit Record)
-            </h3>
+            </div>
 
             {reviewSuccessMsg && (
-              <div className="alert alert-success" style={{ padding: '0.5rem 0.85rem', marginBottom: '1rem' }}>
-                ✓ {reviewSuccessMsg}
+              <div className="alert alert-success" style={{ padding: '0.5rem 0.75rem', marginBottom: '0.75rem' }}>
+                {reviewSuccessMsg}
               </div>
             )}
             {reviewErrorMsg && (
-              <div className="alert alert-error" style={{ padding: '0.5rem 0.85rem', marginBottom: '1rem' }}>
-                ✕ {reviewErrorMsg}
+              <div className="alert alert-error" style={{ padding: '0.5rem 0.75rem', marginBottom: '0.75rem' }}>
+                {reviewErrorMsg}
               </div>
             )}
 
             <form onSubmit={handleSaveReview}>
-              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Review Status:</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Review Status:</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
                   <input
                     type="radio"
                     name="review_status"
@@ -874,7 +867,7 @@ export default function AnalysisDetailPage() {
                   />
                   Unreviewed
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.8125rem', cursor: 'pointer' }}>
                   <input
                     type="radio"
                     name="review_status"
@@ -886,10 +879,10 @@ export default function AnalysisDetailPage() {
                 </label>
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                  <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Reviewer Note (max 2000 chars):</label>
-                  <span style={{ fontSize: '0.75rem', color: reviewerNoteInput.length > 2000 ? '#f87171' : 'var(--text-muted)' }}>
+              <div style={{ marginBottom: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reviewer Note (max 2000 chars):</label>
+                  <span style={{ fontSize: '0.75rem', color: reviewerNoteInput.length > 2000 ? 'var(--critical-text)' : 'var(--text-muted)' }}>
                     {reviewerNoteInput.length} / 2000
                   </span>
                 </div>
@@ -897,14 +890,14 @@ export default function AnalysisDetailPage() {
                   className="filter-select"
                   rows={3}
                   maxLength={2000}
-                  style={{ width: '100%', resize: 'vertical', padding: '0.6rem' }}
+                  style={{ width: '100%', resize: 'vertical', padding: '0.5rem' }}
                   value={reviewerNoteInput}
                   onChange={(e) => setReviewerNoteInput(e.target.value)}
                   placeholder="Enter engineer justification or resolution notes..."
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                 <button
                   type="submit"
                   className="btn btn-primary"

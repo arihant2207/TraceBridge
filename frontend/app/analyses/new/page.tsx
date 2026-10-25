@@ -63,15 +63,15 @@ export default function NewAnalysisPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: '2rem' }}>
-        <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
           ← Back to Dashboard
         </Link>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#ffffff', marginTop: '0.5rem' }}>
-          Start New Validation Analysis
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0.25rem 0 0 0' }}>
+          New Validation Analysis
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-          Upload your engineering datasets or run pre-packaged test fixtures.
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0.25rem 0 0 0' }}>
+          Upload engineering datasets or run pre-packaged sample fixtures.
         </p>
       </div>
 
@@ -81,49 +81,47 @@ export default function NewAnalysisPage() {
           {errorDetails.length > 0 && (
             <ul className="alert-details-list">
               {errorDetails.map((d, i) => (
-                <li key={i} style={{ marginTop: '0.25rem' }}>
-                  {d}
-                </li>
+                <li key={i}>{d}</li>
               ))}
             </ul>
           )}
         </div>
       )}
 
-      {/* Quick Run Section */}
+      {/* Preloaded Sample Datasets */}
       <div className="card">
         <div className="card-title">
-          <span>⚡ One-Click Preloaded Samples</span>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <span>Preloaded Sample Datasets</span>
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <a
               href={getSampleZipUrl('clean')}
               download
               className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
             >
-              📥 Download Clean ZIP
+              Download clean sample (.zip)
             </a>
             <a
               href={getSampleZipUrl('fault')}
               download
               className="btn btn-secondary"
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+              style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
             >
-              📥 Download Fault ZIP
+              Download fault sample (.zip)
             </a>
           </div>
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.25rem' }}>
-          Run official deterministic fixtures to inspect standard compliance or faulty conditions.
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0 0 1rem 0' }}>
+          Execute standard verification test fixtures to inspect clean or faulty evidence runs.
         </p>
 
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn btn-sample-clean"
             disabled={submitting}
             onClick={() => handleRunSample('clean')}
-            style={{ flex: 1, minWidth: '220px', padding: '1rem' }}
+            style={{ flex: 1, minWidth: '220px', padding: '0.75rem 1rem' }}
           >
             {submitting ? 'Running...' : 'Run Clean Sample (Score 100.0, Not Blocked)'}
           </button>
@@ -133,7 +131,7 @@ export default function NewAnalysisPage() {
             className="btn btn-sample-fault"
             disabled={submitting}
             onClick={() => handleRunSample('fault')}
-            style={{ flex: 1, minWidth: '220px', padding: '1rem' }}
+            style={{ flex: 1, minWidth: '220px', padding: '0.75rem 1rem' }}
           >
             {submitting ? 'Running...' : 'Run Fault Sample (Score 73.3, Blocked Critical)'}
           </button>
@@ -142,8 +140,8 @@ export default function NewAnalysisPage() {
 
       {/* File Upload Section */}
       <div className="card">
-        <div className="card-title">📁 Upload Engineering Datasets</div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+        <div className="card-title">Upload Engineering Datasets</div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: '0 0 1.25rem 0' }}>
           CSVs are parsed strictly as UTF-8 text with headers. All schema checks (SCH-001..SCH-007) are evaluated before saving.
         </p>
 
@@ -159,12 +157,15 @@ export default function NewAnalysisPage() {
                   if (e.target.files?.[0]) setReqFile(e.target.files[0]);
                 }}
               />
-              <div className="dropzone-icon">📋</div>
               <div className="dropzone-label">requirements.csv</div>
               <div className="dropzone-hint">
                 Columns: requirement_id, signal_name, operator, threshold_value, unit
               </div>
-              {reqFile && <div className="file-selected-name">✓ {reqFile.name} ({(reqFile.size / 1024).toFixed(1)} KB)</div>}
+              {reqFile && (
+                <div className="file-selected-name">
+                  Selected: {reqFile.name} ({(reqFile.size / 1024).toFixed(1)} KB)
+                </div>
+              )}
             </label>
 
             {/* 2. Test Results CSV */}
@@ -177,12 +178,15 @@ export default function NewAnalysisPage() {
                   if (e.target.files?.[0]) setTestFile(e.target.files[0]);
                 }}
               />
-              <div className="dropzone-icon">🧪</div>
               <div className="dropzone-label">test_results.csv</div>
               <div className="dropzone-hint">
                 Columns: test_id, requirement_id, run_id, status, started_at, completed_at, actual_result, unit
               </div>
-              {testFile && <div className="file-selected-name">✓ {testFile.name} ({(testFile.size / 1024).toFixed(1)} KB)</div>}
+              {testFile && (
+                <div className="file-selected-name">
+                  Selected: {testFile.name} ({(testFile.size / 1024).toFixed(1)} KB)
+                </div>
+              )}
             </label>
 
             {/* 3. Telemetry CSV */}
@@ -195,23 +199,26 @@ export default function NewAnalysisPage() {
                   if (e.target.files?.[0]) setTelFile(e.target.files[0]);
                 }}
               />
-              <div className="dropzone-icon">📈</div>
               <div className="dropzone-label">telemetry.csv</div>
               <div className="dropzone-hint">
                 Columns: run_id, timestamp, signal_name, value, unit
               </div>
-              {telFile && <div className="file-selected-name">✓ {telFile.name} ({(telFile.size / 1024).toFixed(1)} KB)</div>}
+              {telFile && (
+                <div className="file-selected-name">
+                  Selected: {telFile.name} ({(telFile.size / 1024).toFixed(1)} KB)
+                </div>
+              )}
             </label>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
             <button
               type="submit"
               className="btn btn-primary"
               disabled={submitting || !reqFile || !testFile || !telFile}
-              style={{ minWidth: '200px' }}
+              style={{ minWidth: '160px' }}
             >
-              {submitting ? 'Validating Datasets...' : 'Run Analysis →'}
+              {submitting ? 'Validating Datasets...' : 'Run Analysis'}
             </button>
           </div>
         </form>

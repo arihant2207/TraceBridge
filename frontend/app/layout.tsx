@@ -3,7 +3,7 @@ import Link from 'next/link';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'TraceBridge | Deterministic Evidence Validation Engine',
+  title: 'TraceBridge | Evidence Validation Engine',
   description: 'Deterministic engineering-evidence validation engine for safety and requirements compliance.',
 };
 
@@ -18,18 +18,12 @@ export default function RootLayout({
         <div className="app-container">
           <header className="app-header">
             <div className="brand">
-              <span className="brand-badge">TB</span>
-              <div>
-                <Link href="/" className="brand-title">TraceBridge</Link>
-                <div className="brand-subtitle">Deterministic Engineering-Evidence Validation Engine</div>
-              </div>
+              <Link href="/" className="brand-title">TraceBridge</Link>
+              <span className="brand-subtitle">Deterministic Evidence Validation</span>
             </div>
             <nav className="nav-links">
-              <Link href="/" className="btn btn-secondary">
+              <Link href="/" className="nav-link">
                 Dashboard
-              </Link>
-              <Link href="/analyses/new" className="btn btn-primary">
-                + New Analysis
               </Link>
             </nav>
           </header>
