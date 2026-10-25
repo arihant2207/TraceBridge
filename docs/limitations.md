@@ -50,10 +50,6 @@ The following implementation differences exist between the frozen `docs/SPEC.md`
    - *Specification*: SPEC section 8 lists module paths omitting a service layer (`loader.py`, `repo.py`, `routes.py`, `exports.py`).
    - *Implementation*: Added `backend/app/service.py` to orchestrate file persistence, dataset SHA-256 recording, validation engine invocation, and database transactions within an isolated boundary.
 
-2. **Coverage API Representation (`GET /analyses/{id}/coverage`)**:
-   - *Specification*: SPEC section 11 criterion 3 describes requirement coverage with per-test outcomes.
-   - *Implementation*: The endpoint `GET /analyses/{id}/coverage` returns `dict[str, str]` mapping `requirement_id -> status` (precedence resolved per U13). Full per-test outcomes are preserved in `evaluations_json` in SQLite, while the UI displays `"N/A"` for per-test columns on the coverage distribution table.
-
-3. **`R09` Severity vs Gate Non-Blocking**:
+2. **`R09` Severity vs Gate Non-Blocking**:
    - *Specification*: R09 has severity `high` in `ruleset.json`, but SPEC section 6 states "OBSERVATION never blocks."
    - *Implementation*: The gate classification logic in `app/engine/scoring.py` explicitly filters for `finding.finding_class != "OBSERVATION"`, ensuring `OBSERVATION` findings never trigger `BLOCKED_HIGH` regardless of their `high` severity tag in `ruleset.json`.

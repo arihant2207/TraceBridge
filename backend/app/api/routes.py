@@ -16,8 +16,10 @@ from app.api.schemas import (
     DatasetInfo,
     DatasetPreviewResponse,
     FindingResponse,
+    RequirementCoverageItem,
     ReviewResponse,
     ReviewUpdateRequest,
+    TestOutcomeItem,
 )
 from app.db.database import get_db_connection
 from app.db.repo import (
@@ -162,10 +164,10 @@ def get_analysis_findings(
 # =============================================================================
 @router.get(
     "/analyses/{id}/coverage",
-    response_model=dict[str, str],
-    summary="Get requirement coverage statuses for an analysis",
+    response_model=dict[str, RequirementCoverageItem],
+    summary="Get requirement coverage statuses and per-test outcomes for an analysis",
 )
-def get_analysis_coverage(id: str) -> Any:
+def get_analysis_coverage(id: str) -> dict[str, RequirementCoverageItem]:
     conn = get_db_connection()
     analysis = get_analysis(conn, id)
     conn.close()
@@ -174,7 +176,48 @@ def get_analysis_coverage(id: str) -> Any:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Analysis with ID {id!r} not found.",
         )
-    return analysis.get("coverage", {})
+
+    coverage_map = analysis.get("coverage", {})
+    evaluations = analysis.get("evaluations", [])
+
+    # If any evaluation lacks requirement_id, fallback to mapping from stored test_results.csv
+    missing_req = any(not ev.get("requirement_id") for ev in evaluations)
+    test_to_req: dict[str, str] = {}
+    if missing_req:
+        try:
+            from app.service import get_upload_base_dir
+            base_dir = get_upload_base_dir()
+            test_csv_path = base_dir / id / "test_results.csv"
+            if test_csv_path.exists():
+                with open(test_csv_path, mode="r", encoding="utf-8-sig") as f:
+                    reader = csv.DictReader(f)
+                    for r in reader:
+                        tid = (r.get("test_id") or "").strip()
+                        rid = (r.get("requirement_id") or "").strip()
+                        if tid and rid:
+                            test_to_req[tid] = rid
+        except Exception:
+            pass
+
+    evals_by_req: dict[str, list[TestOutcomeItem]] = {}
+    for ev in evaluations:
+        req_id = ev.get("requirement_id") or test_to_req.get(ev.get("test_id", ""))
+        if req_id:
+            evals_by_req.setdefault(req_id, []).append(
+                TestOutcomeItem(
+                    test_id=ev["test_id"],
+                    outcome=ev["outcome"],
+                    blocked_by=ev.get("blocked_by", []),
+                )
+            )
+
+    result: dict[str, RequirementCoverageItem] = {}
+    for req_id, req_status in coverage_map.items():
+        result[req_id] = RequirementCoverageItem(
+            status=req_status,
+            test_outcomes=evals_by_req.get(req_id, []),
+        )
+    return result
 
 
 # =============================================================================

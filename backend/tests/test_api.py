@@ -1,8 +1,8 @@
 """Tests for API endpoints under /api/v1 (Milestone M5)."""
 
 import io
+import json
 from pathlib import Path
-import sqlite3
 import zipfile
 
 from fastapi.testclient import TestClient
@@ -33,6 +33,35 @@ def isolate_test_environment(tmp_path, monkeypatch):
 @pytest.fixture
 def client():
     return TestClient(app)
+
+
+def assert_schema_error(resp, allowed_codes):
+    """422 with the standard error envelope, naming at least one allowed SCH code.
+
+    The code may be in error.code or inside error.details, so the whole error
+    body is searched. This keeps the test independent of the details layout.
+    """
+    assert resp.status_code == 422
+    body = resp.json()
+    assert "error" in body
+    assert "code" in body["error"]
+    assert "message" in body["error"]
+    assert isinstance(body["error"]["details"], list)
+    text = json.dumps(body["error"], ensure_ascii=False)
+    assert any(code in text for code in allowed_codes), (
+        f"expected one of {allowed_codes} in error body, got: {text}"
+    )
+
+
+def assert_no_analysis_left(tmp_path):
+    """No analysis row in the DB and no analysis folder under uploads."""
+    conn = get_db_connection()
+    count = conn.execute("SELECT COUNT(*) FROM analyses;").fetchone()[0]
+    conn.close()
+    assert count == 0
+    upload_dir = tmp_path / "uploads"
+    if upload_dir.exists():
+        assert len(list(upload_dir.iterdir())) == 0
 
 
 # =============================================================================
@@ -69,14 +98,69 @@ def test_post_analysis_clean_sample(client):
     assert findings[0]["rule_id"] == "R09"
     assert findings[0]["entity_key"] == "TST-002"
 
-    # GET /analyses/{id}/coverage returns clean coverage
+    # GET /analyses/{id}/coverage returns clean coverage with per-test outcomes
     cov_resp = client.get(f"/api/v1/analyses/{analysis_id}/coverage")
     assert cov_resp.status_code == 200
-    assert cov_resp.json() == {
-        "REQ-THM-011": "SATISFIED",
-        "REQ-ELC-004": "VIOLATED",
-        "REQ-PWR-002": "SATISFIED",
-    }
+    cov = cov_resp.json()
+    assert cov["REQ-THM-011"]["status"] == "SATISFIED"
+    assert cov["REQ-THM-011"]["test_outcomes"] == [
+        {"test_id": "TST-001", "outcome": "SATISFIED", "blocked_by": []}
+    ]
+    assert cov["REQ-ELC-004"]["status"] == "VIOLATED"
+    assert cov["REQ-ELC-004"]["test_outcomes"] == [
+        {"test_id": "TST-002", "outcome": "VIOLATED", "blocked_by": []}
+    ]
+    assert cov["REQ-PWR-002"]["status"] == "SATISFIED"
+    assert cov["REQ-PWR-002"]["test_outcomes"] == [
+        {"test_id": "TST-003", "outcome": "SATISFIED", "blocked_by": []}
+    ]
+
+
+def test_coverage_endpoint_per_test_outcomes_fault(client):
+    """GET /analyses/{id}/coverage returns per-test outcomes with findings for fault sample."""
+    resp = client.post("/api/v1/analyses", data={"sample": "fault"})
+    assert resp.status_code == 201
+    analysis_id = resp.json()["id"]
+
+    cov_resp = client.get(f"/api/v1/analyses/{analysis_id}/coverage")
+    assert cov_resp.status_code == 200
+    cov = cov_resp.json()
+
+    # Status assertions per expected_fault.json and SPEC U13
+    assert cov["REQ-THM-011"]["status"] == "CONTRADICTORY"
+    assert cov["REQ-PWR-002"]["status"] == "CONTRADICTORY"
+    assert cov["REQ-ELC-004"]["status"] == "INCONCLUSIVE"
+    assert cov["REQ-THM-015"]["status"] == "NOT_EXECUTED"
+    assert "REQ-PWR-009" in cov
+    assert cov["REQ-PWR-009"]["status"] == "NOT_COVERED"
+    assert cov["REQ-PWR-009"]["test_outcomes"] == []
+
+    # REQ-THM-011 has TST-001 VIOLATED
+    assert any(
+        t["test_id"] == "TST-001" and t["outcome"] == "VIOLATED"
+        for t in cov["REQ-THM-011"]["test_outcomes"]
+    )
+
+    # REQ-ELC-004 has TST-002 INCONCLUSIVE with finding references
+    tst_002 = next((t for t in cov["REQ-ELC-004"]["test_outcomes"] if t["test_id"] == "TST-002"), None)
+    assert tst_002 is not None
+    assert tst_002["outcome"] == "INCONCLUSIVE"
+    assert len(tst_002["blocked_by"]) > 0
+
+    # Every executed test under REQ-ELC-004 stops before S5 (SPEC section 5)
+    for t in cov["REQ-ELC-004"]["test_outcomes"]:
+        assert t["outcome"] == "INCONCLUSIVE"
+        assert len(t["blocked_by"]) > 0
+
+    # REQ-PWR-002: TST-005 is SATISFIED (Fail + satisfied = R10); TST-006 and
+    # TST-007 stop earlier and are INCONCLUSIVE
+    pwr = {t["test_id"]: t["outcome"] for t in cov["REQ-PWR-002"]["test_outcomes"]}
+    assert pwr["TST-005"] == "SATISFIED"
+    assert pwr["TST-006"] == "INCONCLUSIVE"
+    assert pwr["TST-007"] == "INCONCLUSIVE"
+
+    # REQ-THM-015 only has a Not Run test, which has no evaluation
+    assert cov["REQ-THM-015"]["test_outcomes"] == []
 
 
 def test_post_analysis_fault_sample(client):
@@ -127,14 +211,15 @@ def test_post_analysis_multipart_upload(client):
 # 2. Schema Rejection Cases (Return 422 and leave analyses table empty)
 # =============================================================================
 @pytest.mark.parametrize(
-    "case_name,req_filename,req_content,test_content,tel_content",
+    "case_name,req_filename,req_content,test_content,tel_content,allowed_codes",
     [
         (
             "missing_column",
             "req.csv",
-            b"signal_name,operator,threshold_value,unit\nREQ-01,temp,<=,80,\xC2\xB0C\n",  # missing requirement_id (SCH-004)
+            b"signal_name,operator,threshold_value,unit\ntemp,<=,80,\xC2\xB0C\n",  # missing requirement_id (SCH-004)
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-004",),
         ),
         (
             "wrong_extension",
@@ -142,6 +227,7 @@ def test_post_analysis_multipart_upload(client):
             (CLEAN_DIR / "requirements.csv").read_bytes(),
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-001",),
         ),
         (
             "non_csv_or_nul",
@@ -149,13 +235,15 @@ def test_post_analysis_multipart_upload(client):
             b"requirement_id,signal_name,operator,threshold_value,unit\x00\n",  # NUL byte (SCH-001)
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-001",),
         ),
         (
             "empty_file",
             "req.csv",
-            b"",  # empty file (SCH-003)
+            b"",  # empty file: no header at all, the exact code depends on the loader
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-003", "SCH-004", "SCH-006"),
         ),
         (
             "duplicate_columns",
@@ -163,6 +251,7 @@ def test_post_analysis_multipart_upload(client):
             b"requirement_id,signal_name,signal_name,operator,threshold_value,unit\n",  # duplicate column (SCH-005)
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-005",),
         ),
         (
             "zero_data_rows",
@@ -170,6 +259,7 @@ def test_post_analysis_multipart_upload(client):
             b"requirement_id,signal_name,operator,threshold_value,unit\n",  # 0 data rows (SCH-006)
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-006",),
         ),
         (
             "ragged_rows",
@@ -177,18 +267,20 @@ def test_post_analysis_multipart_upload(client):
             b"requirement_id,signal_name,operator,threshold_value,unit\nREQ-01,temp,<=,80\n",  # 4 fields instead of 5 (SCH-007)
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-007",),
         ),
         (
             "non_utf8",
             "req.csv",
-            b"\xFF\xFE\x00\x00invalid utf8",  # invalid utf-8 (SCH-003)
+            b"\xFF\xFE\x00\x00invalid utf8",  # invalid UTF-8; also contains NUL bytes, so SCH-001 or SCH-003
             (CLEAN_DIR / "test_results.csv").read_bytes(),
             (CLEAN_DIR / "telemetry.csv").read_bytes(),
+            ("SCH-001", "SCH-003"),
         ),
     ],
 )
 def test_schema_reject_cases_leave_db_and_uploads_empty(
-    client, tmp_path, case_name, req_filename, req_content, test_content, tel_content
+    client, tmp_path, case_name, req_filename, req_content, test_content, tel_content, allowed_codes
 ):
     """Each schema-reject case returns 422 and leaves the analyses table and upload folder empty."""
     files = {
@@ -197,23 +289,8 @@ def test_schema_reject_cases_leave_db_and_uploads_empty(
         "telemetry": ("tel.csv", tel_content, "text/csv"),
     }
     resp = client.post("/api/v1/analyses", files=files)
-    assert resp.status_code == 422
-    err_body = resp.json()
-    assert "error" in err_body
-    assert "code" in err_body["error"]
-    assert "message" in err_body["error"]
-    assert isinstance(err_body["error"]["details"], list)
-
-    # Verify analyses table is completely empty in DB
-    conn = get_db_connection()
-    count = conn.execute("SELECT COUNT(*) FROM analyses;").fetchone()[0]
-    conn.close()
-    assert count == 0
-
-    # Verify no analysis directory was left in uploads
-    upload_dir = tmp_path / "uploads"
-    if upload_dir.exists():
-        assert len(list(upload_dir.iterdir())) == 0
+    assert_schema_error(resp, allowed_codes)
+    assert_no_analysis_left(tmp_path)
 
 
 def test_schema_reject_oversize_leaves_db_and_uploads_empty(client, tmp_path):
@@ -225,21 +302,8 @@ def test_schema_reject_oversize_leaves_db_and_uploads_empty(client, tmp_path):
         "telemetry": ("tel.csv", (CLEAN_DIR / "telemetry.csv").read_bytes(), "text/csv"),
     }
     resp = client.post("/api/v1/analyses", files=files)
-    assert resp.status_code == 422
-    err_body = resp.json()
-    assert "error" in err_body
-    assert "SCH-002" in err_body["error"]["code"] or any("SCH-002" in d for d in err_body["error"]["details"])
-
-    # Verify analyses table is completely empty in DB
-    conn = get_db_connection()
-    count = conn.execute("SELECT COUNT(*) FROM analyses;").fetchone()[0]
-    conn.close()
-    assert count == 0
-
-    # Verify no analysis directory was left in uploads
-    upload_dir = tmp_path / "uploads"
-    if upload_dir.exists():
-        assert len(list(upload_dir.iterdir())) == 0
+    assert_schema_error(resp, ("SCH-002",))
+    assert_no_analysis_left(tmp_path)
 
 
 # =============================================================================

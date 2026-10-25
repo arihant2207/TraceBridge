@@ -12,6 +12,8 @@ export type ReviewUpdateRequest = components['schemas']['ReviewUpdateRequest'];
 export type ReviewResponse = components['schemas']['ReviewResponse'];
 export type DatasetPreviewResponse = components['schemas']['DatasetPreviewResponse'];
 export type DatasetInfo = components['schemas']['DatasetInfo'];
+export type RequirementCoverageItem = components['schemas']['RequirementCoverageItem'];
+export type TestOutcomeItem = components['schemas']['TestOutcomeItem'];
 
 export interface ApiErrorEnvelope {
   error: {
@@ -171,13 +173,13 @@ export async function getFindings(id: string, filters?: FindingFilters): Promise
 /**
  * Get requirement coverage map for an analysis.
  */
-export async function getCoverage(id: string): Promise<Record<string, string>> {
+export async function getCoverage(id: string): Promise<Record<string, RequirementCoverageItem>> {
   const res = await apiFetch(`/api/v1/analyses/${encodeURIComponent(id)}/coverage`, {
     method: 'GET',
     headers: { Accept: 'application/json' },
     cache: 'no-store',
   });
-  return handleResponse<Record<string, string>>(res);
+  return handleResponse<Record<string, RequirementCoverageItem>>(res);
 }
 
 /**

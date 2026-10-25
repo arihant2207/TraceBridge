@@ -56,6 +56,21 @@ class AnalysisDetail(AnalysisSummary):
     datasets: list[DatasetInfo] = Field(default_factory=list)
 
 
+class TestOutcomeItem(BaseModel):
+    """Outcome of an evaluated test against a requirement."""
+
+    test_id: str
+    outcome: str
+    blocked_by: list[str] = Field(default_factory=list)
+
+
+class RequirementCoverageItem(BaseModel):
+    """Coverage status and per-test outcomes for a requirement."""
+
+    status: str
+    test_outcomes: list[TestOutcomeItem] = Field(default_factory=list)
+
+
 class FindingResponse(BaseModel):
     """Finding item returned by GET findings."""
 

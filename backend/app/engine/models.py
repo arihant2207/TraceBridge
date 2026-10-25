@@ -85,6 +85,7 @@ class Evaluation(BaseModel):
     """Evaluation record for an executed test."""
 
     test_id: str
+    requirement_id: str | None = None
     outcome: str  # "SATISFIED" | "VIOLATED" | "INCONCLUSIVE"
     aggregate: str | None = None
     n_in_window: int = 0

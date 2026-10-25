@@ -11,6 +11,7 @@ import {
   AnalysisDetail,
   FindingResponse,
   FindingFilters,
+  RequirementCoverageItem,
   ApiError,
 } from '../../../lib/api';
 import { ScoreGateHeader } from '../../../components/ScoreGateHeader';
@@ -42,7 +43,7 @@ export default function AnalysisDetailPage() {
   const [analysisError, setAnalysisError] = useState<{ code: string; message: string; details: string[] } | null>(null);
 
   // Coverage state
-  const [coverage, setCoverage] = useState<Record<string, string> | null>(null);
+  const [coverage, setCoverage] = useState<Record<string, RequirementCoverageItem> | null>(null);
   const [loadingCoverage, setLoadingCoverage] = useState(true);
   const [coverageError, setCoverageError] = useState<{ code: string; message: string; details: string[] } | null>(null);
 
@@ -257,7 +258,8 @@ export default function AnalysisDetailPage() {
     SATISFIED: 0,
   };
 
-  for (const [, status] of coverageEntries) {
+  for (const [, item] of coverageEntries) {
+    const status = item.status;
     if (status in coverageCounts) {
       coverageCounts[status] = (coverageCounts[status] || 0) + 1;
     } else {
@@ -408,9 +410,11 @@ export default function AnalysisDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {coverageEntries.map(([reqId, status]) => {
+                  {coverageEntries.map(([reqId, covItem]) => {
+                    const status = covItem.status;
                     const color = getCoverageColor(status);
                     const label = status === 'SATISFIED' ? 'satisfied by recorded evidence' : status;
+                    const outcomes = covItem.test_outcomes || [];
                     return (
                       <tr key={reqId}>
                         <td className="mono" style={{ fontWeight: 600 }}>
@@ -432,7 +436,52 @@ export default function AnalysisDetailPage() {
                             {label}
                           </span>
                         </td>
-                        <td style={{ color: 'var(--text-muted)' }}>N/A</td>
+                        <td>
+                          {outcomes.length === 0 ? (
+                            <span style={{ color: 'var(--text-muted)' }}>None recorded</span>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                              {outcomes.map((t, idx) => {
+                                const outcomeColor = getCoverageColor(t.outcome);
+                                return (
+                                  <div
+                                    key={`${t.test_id}-${idx}`}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '0.5rem',
+                                      flexWrap: 'wrap',
+                                      fontSize: '0.8125rem',
+                                    }}
+                                  >
+                                    <span className="mono" style={{ fontWeight: 600 }}>
+                                      {t.test_id}
+                                    </span>
+                                    <span
+                                      style={{
+                                        display: 'inline-block',
+                                        padding: '0.1rem 0.35rem',
+                                        borderRadius: '3px',
+                                        fontSize: '0.7rem',
+                                        fontWeight: 500,
+                                        color: outcomeColor,
+                                        border: `1px solid ${outcomeColor}44`,
+                                        backgroundColor: `${outcomeColor}11`,
+                                      }}
+                                    >
+                                      {t.outcome}
+                                    </span>
+                                    {t.blocked_by && t.blocked_by.length > 0 && (
+                                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        (blocked by: {t.blocked_by.join(', ')})
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}

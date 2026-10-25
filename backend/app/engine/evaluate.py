@@ -145,6 +145,7 @@ def evaluate_pipeline(
             evaluations.append(
                 Evaluation(
                     test_id=test_id,
+                    requirement_id=req_id,
                     outcome="INCONCLUSIVE",
                     aggregate=None,
                     n_in_window=0,
@@ -159,6 +160,7 @@ def evaluate_pipeline(
             evaluations.append(
                 Evaluation(
                     test_id=test_id,
+                    requirement_id=req_id,
                     outcome="INCONCLUSIVE",
                     aggregate=None,
                     n_in_window=0,
@@ -191,6 +193,7 @@ def evaluate_pipeline(
             evaluations.append(
                 Evaluation(
                     test_id=test_id,
+                    requirement_id=req_id,
                     outcome="INCONCLUSIVE",
                     aggregate=None,
                     n_in_window=0,
@@ -267,6 +270,7 @@ def evaluate_pipeline(
             evaluations.append(
                 Evaluation(
                     test_id=test_id,
+                    requirement_id=req_id,
                     outcome="INCONCLUSIVE",
                     aggregate=None,
                     n_in_window=0,
@@ -322,6 +326,7 @@ def evaluate_pipeline(
             evaluations.append(
                 Evaluation(
                     test_id=test_id,
+                    requirement_id=req_id,
                     outcome="INCONCLUSIVE",
                     aggregate=None,
                     n_in_window=n_in_window,
@@ -434,6 +439,7 @@ def evaluate_pipeline(
         evaluations.append(
             Evaluation(
                 test_id=test_id,
+                requirement_id=req_id,
                 outcome=outcome,
                 aggregate=str(aggregate_val),
                 n_in_window=n_in_window,

@@ -63,7 +63,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get requirement coverage statuses for an analysis */
+        /** Get requirement coverage statuses and per-test outcomes for an analysis */
         get: operations["get_analysis_coverage_api_v1_analyses__id__coverage_get"];
         put?: never;
         post?: never;
@@ -314,6 +314,16 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * RequirementCoverageItem
+         * @description Coverage status and per-test outcomes for a requirement.
+         */
+        RequirementCoverageItem: {
+            /** Status */
+            status: string;
+            /** Test Outcomes */
+            test_outcomes?: components["schemas"]["TestOutcomeItem"][];
+        };
+        /**
          * ReviewResponse
          * @description Response returned by PATCH /findings/{id}/review.
          */
@@ -339,6 +349,18 @@ export interface components {
              * @default
              */
             reviewer_note: string;
+        };
+        /**
+         * TestOutcomeItem
+         * @description Outcome of an evaluated test against a requirement.
+         */
+        TestOutcomeItem: {
+            /** Test Id */
+            test_id: string;
+            /** Outcome */
+            outcome: string;
+            /** Blocked By */
+            blocked_by?: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -502,7 +524,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        [key: string]: string;
+                        [key: string]: components["schemas"]["RequirementCoverageItem"];
                     };
                 };
             };
