@@ -1,0 +1,316 @@
+{
+  "dataset": "fault",
+  "record_count": 35,
+  "finding_count": 14,
+  "by_severity": {
+    "critical": 2,
+    "high": 9,
+    "medium": 3,
+    "low": 0
+  },
+  "gate": "BLOCKED_CRITICAL",
+  "score": "73.3",
+  "score_note": "Hand-computed, not program output. If code differs, investigate both sides; do not silently edit.",
+  "findings": [
+    {
+      "rule_id": "R01",
+      "variant": null,
+      "entity_key": "TST-006",
+      "severity": "high",
+      "finding_class": "MISSING_EVIDENCE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 6,
+          "record_id": "TST-006"
+        }
+      ]
+    },
+    {
+      "rule_id": "R02",
+      "variant": null,
+      "entity_key": "TST-010",
+      "severity": "high",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 10,
+          "record_id": "TST-010"
+        },
+        {
+          "file": "test_results.csv",
+          "row_number": 11,
+          "record_id": "TST-010"
+        }
+      ]
+    },
+    {
+      "rule_id": "R03",
+      "variant": null,
+      "entity_key": "RUN-0002:motor_current",
+      "severity": "medium",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "telemetry.csv",
+          "row_number": 5,
+          "record_id": "RUN-0002:motor_current"
+        }
+      ]
+    },
+    {
+      "rule_id": "R04",
+      "variant": null,
+      "entity_key": "TST-003",
+      "severity": "medium",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 3,
+          "record_id": "TST-003"
+        }
+      ]
+    },
+    {
+      "rule_id": "R05",
+      "variant": null,
+      "entity_key": "TST-009",
+      "severity": "high",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 9,
+          "record_id": "TST-009"
+        }
+      ]
+    },
+    {
+      "rule_id": "R06",
+      "variant": null,
+      "entity_key": "RUN-0099",
+      "severity": "medium",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "telemetry.csv",
+          "row_number": 18,
+          "record_id": "RUN-0099:motor_current"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 19,
+          "record_id": "RUN-0099:motor_current"
+        }
+      ]
+    },
+    {
+      "rule_id": "R07",
+      "variant": "NO_TEST",
+      "entity_key": "REQ-PWR-009",
+      "severity": "high",
+      "finding_class": "MISSING_EVIDENCE",
+      "source_refs": [
+        {
+          "file": "requirements.csv",
+          "row_number": 5,
+          "record_id": "REQ-PWR-009"
+        }
+      ]
+    },
+    {
+      "rule_id": "R07",
+      "variant": "NOT_EXECUTED",
+      "entity_key": "REQ-THM-015",
+      "severity": "high",
+      "finding_class": "MISSING_EVIDENCE",
+      "source_refs": [
+        {
+          "file": "requirements.csv",
+          "row_number": 4,
+          "record_id": "REQ-THM-015"
+        },
+        {
+          "file": "test_results.csv",
+          "row_number": 8,
+          "record_id": "TST-008"
+        }
+      ]
+    },
+    {
+      "rule_id": "R08",
+      "variant": null,
+      "entity_key": "TST-007",
+      "severity": "high",
+      "finding_class": "MISSING_EVIDENCE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 7,
+          "record_id": "TST-007"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 16,
+          "record_id": "RUN-0007:motor_current"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 17,
+          "record_id": "RUN-0007:motor_current"
+        }
+      ]
+    },
+    {
+      "rule_id": "R09",
+      "variant": null,
+      "entity_key": "TST-001",
+      "severity": "high",
+      "finding_class": "OBSERVATION",
+      "source_refs": [
+        {
+          "file": "telemetry.csv",
+          "row_number": 2,
+          "record_id": "RUN-0001:esc_temperature"
+        }
+      ]
+    },
+    {
+      "rule_id": "R10",
+      "variant": null,
+      "entity_key": "TST-001",
+      "severity": "critical",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 1,
+          "record_id": "TST-001"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 2,
+          "record_id": "RUN-0001:esc_temperature"
+        }
+      ]
+    },
+    {
+      "rule_id": "R10",
+      "variant": null,
+      "entity_key": "TST-005",
+      "severity": "critical",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 5,
+          "record_id": "TST-005"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 14,
+          "record_id": "RUN-0005:battery_voltage"
+        }
+      ]
+    },
+    {
+      "rule_id": "R11",
+      "variant": "UNIT_MISMATCH",
+      "entity_key": "TST-004",
+      "severity": "high",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "telemetry.csv",
+          "row_number": 10,
+          "record_id": "RUN-0004:motor_current"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 11,
+          "record_id": "RUN-0004:motor_current"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 12,
+          "record_id": "RUN-0004:motor_current"
+        }
+      ]
+    },
+    {
+      "rule_id": "R12",
+      "variant": null,
+      "entity_key": "TST-001",
+      "severity": "high",
+      "finding_class": "VALIDATION_FAILURE",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 1,
+          "record_id": "TST-001"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 2,
+          "record_id": "RUN-0001:esc_temperature"
+        }
+      ]
+    }
+  ],
+  "must_not_produce": [
+    {
+      "rules": [
+        "R08",
+        "R09",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "entities": [
+        "TST-002",
+        "TST-003",
+        "TST-006",
+        "TST-010"
+      ]
+    },
+    {
+      "rules": [
+        "R09"
+      ],
+      "entities": [
+        "TST-007",
+        "TST-009"
+      ]
+    },
+    {
+      "rules": [
+        "R12"
+      ],
+      "entities": [
+        "TST-005"
+      ]
+    },
+    {
+      "rules": [
+        "R01"
+      ],
+      "entities": [
+        "TST-008"
+      ]
+    }
+  ],
+  "coverage": {
+    "REQ-THM-011": "CONTRADICTORY",
+    "REQ-PWR-002": "CONTRADICTORY",
+    "REQ-ELC-004": "INCONCLUSIVE",
+    "REQ-THM-015": "NOT_EXECUTED",
+    "REQ-PWR-009": "NOT_COVERED"
+  },
+  "test_row_status_counts": {
+    "Pass": 8,
+    "Fail": 2,
+    "Not Run": 1
+  }
+}

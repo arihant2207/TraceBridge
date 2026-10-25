@@ -1,0 +1,6 @@
+requirement_id,description,signal_name,operator,threshold_value,unit
+REQ-THM-011,ESC case temperature limit,esc_temperature,<=,85,°C
+REQ-ELC-004,Motor phase current limit,motor_current,<=,30,A
+REQ-PWR-002,Battery minimum voltage under load,battery_voltage,>=,20,V
+REQ-THM-015,Motor winding temperature limit,motor_temperature,<=,100,°C
+REQ-PWR-009,Regulator minimum output voltage,regulator_voltage,>=,4.8,V

@@ -1,0 +1,33 @@
+{
+  "dataset": "clean",
+  "record_count": 15,
+  "finding_count": 1,
+  "gate": "NOT_BLOCKED",
+  "score": "100.0",
+  "findings": [
+    {
+      "rule_id": "R09",
+      "variant": null,
+      "entity_key": "TST-002",
+      "severity": "high",
+      "finding_class": "OBSERVATION",
+      "source_refs": [
+        {
+          "file": "test_results.csv",
+          "row_number": 2,
+          "record_id": "TST-002"
+        },
+        {
+          "file": "telemetry.csv",
+          "row_number": 5,
+          "record_id": "RUN-0002:motor_current"
+        }
+      ]
+    }
+  ],
+  "coverage": {
+    "REQ-THM-011": "SATISFIED",
+    "REQ-ELC-004": "VIOLATED",
+    "REQ-PWR-002": "SATISFIED"
+  }
+}

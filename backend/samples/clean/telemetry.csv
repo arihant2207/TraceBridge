@@ -1,0 +1,10 @@
+run_id,timestamp,signal_name,value,unit
+RUN-0001,2026-10-01T10:00:00Z,esc_temperature,61.2,°C
+RUN-0001,2026-10-01T10:01:00Z,esc_temperature,78.4,°C
+RUN-0001,2026-10-01T10:02:00Z,esc_temperature,77.1,°C
+RUN-0002,2026-10-01T11:00:00Z,motor_current,18.2,A
+RUN-0002,2026-10-01T11:01:00Z,motor_current,32.4,A
+RUN-0002,2026-10-01T11:02:00Z,motor_current,29.8,A
+RUN-0003,2026-10-01T12:00:00Z,battery_voltage,23.9,V
+RUN-0003,2026-10-01T12:01:00Z,battery_voltage,21.6,V
+RUN-0003,2026-10-01T12:02:00Z,battery_voltage,22.4,V
