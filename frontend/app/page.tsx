@@ -8,7 +8,7 @@ import { GateBadge } from '../components/ScoreGateHeader';
 export default function AnalysesListPage() {
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ code: string; message: string; details: string[] } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -21,7 +21,11 @@ export default function AnalysesListPage() {
       })
       .catch((err) => {
         if (mounted) {
-          setError(err instanceof ApiError ? `${err.code}: ${err.message}` : err.message);
+          if (err instanceof ApiError) {
+            setError({ code: err.code, message: err.message, details: err.details });
+          } else {
+            setError({ code: 'ERROR', message: (err as Error).message, details: [] });
+          }
           setLoading(false);
         }
       });
@@ -45,9 +49,16 @@ export default function AnalysesListPage() {
       </div>
 
       {error && (
-        <div className="alert alert-error">
-          <div className="alert-title">Failed to load analyses</div>
-          <div>{error}</div>
+        <div className="alert alert-error" style={{ marginBottom: '1.5rem' }}>
+          <div className="alert-title">[{error.code}] Failed to load analyses</div>
+          <div>{error.message}</div>
+          {error.details.length > 0 && (
+            <ul className="alert-details-list">
+              {error.details.map((d, i) => (
+                <li key={i}>{d}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

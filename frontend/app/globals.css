@@ -681,3 +681,60 @@ a {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
+
+/* Coverage Distribution Bar */
+.coverage-bar-wrapper {
+  margin: 1rem 0;
+}
+
+.coverage-bar {
+  display: flex;
+  height: 24px;
+  width: 100%;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.coverage-segment {
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+.coverage-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.8125rem;
+}
+
+.coverage-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.coverage-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* Report Preformatted Block */
+.report-pre {
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 1.5rem;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+

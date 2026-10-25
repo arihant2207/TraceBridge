@@ -1,18 +1,33 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   getAnalysis,
   getFindings,
+  getCoverage,
   updateFindingReview,
   AnalysisDetail,
   FindingResponse,
   FindingFilters,
   ApiError,
 } from '../../../lib/api';
-import { ScoreGateHeader, GateBadge } from '../../../components/ScoreGateHeader';
+import { ScoreGateHeader } from '../../../components/ScoreGateHeader';
+
+interface CheckScoreItem {
+  rule_id?: string;
+  applicable: number;
+  failing: number;
+  pass_rate?: string | null;
+}
+
+interface SourceRefItem {
+  file?: string;
+  row_number?: number | string;
+  record_id?: string;
+  fields?: Record<string, unknown>;
+}
 
 export default function AnalysisDetailPage() {
   const params = useParams();
@@ -24,7 +39,12 @@ export default function AnalysisDetailPage() {
 
   const [loadingAnalysis, setLoadingAnalysis] = useState(true);
   const [loadingFindings, setLoadingFindings] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [analysisError, setAnalysisError] = useState<{ code: string; message: string; details: string[] } | null>(null);
+
+  // Coverage state
+  const [coverage, setCoverage] = useState<Record<string, string> | null>(null);
+  const [loadingCoverage, setLoadingCoverage] = useState(true);
+  const [coverageError, setCoverageError] = useState<{ code: string; message: string; details: string[] } | null>(null);
 
   // Filters
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -43,7 +63,7 @@ export default function AnalysisDetailPage() {
   useEffect(() => {
     if (!analysisId) return;
     setLoadingAnalysis(true);
-    setError(null);
+    setAnalysisError(null);
 
     getAnalysis(analysisId)
       .then((data) => {
@@ -51,8 +71,33 @@ export default function AnalysisDetailPage() {
         setLoadingAnalysis(false);
       })
       .catch((err) => {
-        setError(err instanceof ApiError ? `${err.code}: ${err.message}` : err.message);
+        if (err instanceof ApiError) {
+          setAnalysisError({ code: err.code, message: err.message, details: err.details });
+        } else {
+          setAnalysisError({ code: 'ERROR', message: (err as Error).message, details: [] });
+        }
         setLoadingAnalysis(false);
+      });
+  }, [analysisId]);
+
+  // Load Coverage Data
+  useEffect(() => {
+    if (!analysisId) return;
+    setLoadingCoverage(true);
+    setCoverageError(null);
+
+    getCoverage(analysisId)
+      .then((data) => {
+        setCoverage(data);
+        setLoadingCoverage(false);
+      })
+      .catch((err) => {
+        if (err instanceof ApiError) {
+          setCoverageError({ code: err.code, message: err.message, details: err.details });
+        } else {
+          setCoverageError({ code: 'ERROR', message: (err as Error).message, details: [] });
+        }
+        setLoadingCoverage(false);
       });
   }, [analysisId]);
 
@@ -141,9 +186,9 @@ export default function AnalysisDetailPage() {
       setReviewSuccessMsg('Review recorded successfully.');
     } catch (err) {
       if (err instanceof ApiError) {
-        setReviewErrorMsg(`${err.code}: ${err.message}`);
+        setReviewErrorMsg(`[${err.code}] ${err.message}`);
       } else {
-        setReviewErrorMsg((err as Error).message);
+        setReviewErrorMsg(`[ERROR] ${(err as Error).message}`);
       }
     } finally {
       setSavingReview(false);
@@ -158,7 +203,7 @@ export default function AnalysisDetailPage() {
     );
   }
 
-  if (error || !analysis) {
+  if (analysisError || !analysis) {
     return (
       <div>
         <div style={{ marginBottom: '1.5rem' }}>
@@ -167,26 +212,19 @@ export default function AnalysisDetailPage() {
           </Link>
         </div>
         <div className="alert alert-error">
-          <div className="alert-title">Analysis Not Found</div>
-          <div>{error || `Analysis ${analysisId} could not be loaded.`}</div>
+          <div className="alert-title">{analysisError ? `[${analysisError.code}] Analysis Error` : 'Analysis Not Found'}</div>
+          <div>{analysisError ? analysisError.message : `Analysis ${analysisId} could not be loaded.`}</div>
+          {analysisError && analysisError.details.length > 0 && (
+            <ul className="alert-details-list">
+              {analysisError.details.map((d, i) => (
+                <li key={i}>{d}</li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     );
   }
-interface CheckScoreItem {
-  rule_id?: string;
-  applicable: number;
-  failing: number;
-  pass_rate?: string | null;
-}
-
-interface SourceRefItem {
-  file?: string;
-  row_number?: number | string;
-  record_id?: string;
-  fields?: Record<string, unknown>;
-}
-
   const scoreChecks = (
     analysis?.score_breakdown &&
     typeof analysis.score_breakdown === 'object' &&
@@ -196,6 +234,57 @@ interface SourceRefItem {
       : {}
   );
   const unresolvedNote = (analysis as unknown as { unresolved?: string | string[] }).unresolved;
+
+  const isGateBlocked = analysis.gate !== 'NOT_BLOCKED';
+
+  const COVERAGE_STATUS_ORDER = [
+    'NOT_COVERED',
+    'NOT_EXECUTED',
+    'CONTRADICTORY',
+    'VIOLATED',
+    'INCONCLUSIVE',
+    'SATISFIED',
+  ] as const;
+
+  const coverageEntries = Object.entries(coverage || {}).sort(([a], [b]) => a.localeCompare(b));
+  const totalRequirements = coverageEntries.length;
+
+  const coverageCounts: Record<string, number> = {
+    NOT_COVERED: 0,
+    NOT_EXECUTED: 0,
+    CONTRADICTORY: 0,
+    VIOLATED: 0,
+    INCONCLUSIVE: 0,
+    SATISFIED: 0,
+  };
+
+  for (const [, status] of coverageEntries) {
+    if (status in coverageCounts) {
+      coverageCounts[status] = (coverageCounts[status] || 0) + 1;
+    } else {
+      coverageCounts[status] = 1;
+    }
+  }
+
+  const getCoverageColor = (status: string) => {
+    switch (status) {
+      case 'CONTRADICTORY':
+        return '#ef4444';
+      case 'VIOLATED':
+        return '#f97316';
+      case 'INCONCLUSIVE':
+        return '#f59e0b';
+      case 'NOT_EXECUTED':
+        return '#64748b';
+      case 'NOT_COVERED':
+        return '#71717a';
+      case 'SATISFIED':
+        // Never colour anything green when the gate is blocked
+        return isGateBlocked ? '#60a5fa' : '#10b981';
+      default:
+        return '#94a3b8';
+    }
+  };
 
   return (
     <div>
@@ -213,7 +302,10 @@ interface SourceRefItem {
               Created: {analysis.created_at.replace('T', ' ').slice(0, 19)} UTC | Records Processed: {analysis.records_processed}
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link href={`/analyses/${analysis.id}/report`} className="btn btn-secondary">
+              📄 View Report (MD)
+            </Link>
             <Link href="/analyses/new" className="btn btn-secondary">
               + New Run
             </Link>
@@ -240,7 +332,118 @@ interface SourceRefItem {
         </div>
       )}
 
-      {/* (b) 11 Quality Checks Breakdown */}
+      {/* (b) Requirement Coverage Section */}
+      <div className="card">
+        <div className="card-title">
+          <span>🎯 Requirement Coverage</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+            Status distribution & per-test verification
+          </span>
+        </div>
+
+        {loadingCoverage ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+            Loading requirement coverage data...
+          </div>
+        ) : coverageError ? (
+          <div className="alert alert-error" style={{ margin: '1rem 0' }}>
+            <div className="alert-title">[{coverageError.code}] Failed to load coverage</div>
+            <div>{coverageError.message}</div>
+          </div>
+        ) : totalRequirements === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+            No requirement coverage records recorded for this analysis.
+          </div>
+        ) : (
+          <div>
+            {/* Horizontal Distribution Bar */}
+            <div className="coverage-bar-wrapper">
+              <div className="coverage-bar">
+                {COVERAGE_STATUS_ORDER.map((status) => {
+                  const count = coverageCounts[status] || 0;
+                  if (count === 0) return null;
+                  const pct = (count / totalRequirements) * 100;
+                  return (
+                    <div
+                      key={status}
+                      className="coverage-segment"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: getCoverageColor(status),
+                      }}
+                      title={`${status}: ${count} (${pct.toFixed(1)}%)`}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Legend with Counts */}
+            <div className="coverage-legend">
+              {COVERAGE_STATUS_ORDER.map((status) => {
+                const count = coverageCounts[status] || 0;
+                const color = getCoverageColor(status);
+                return (
+                  <div key={status} className="coverage-legend-item">
+                    <span className="coverage-legend-color" style={{ backgroundColor: color }} />
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {status === 'SATISFIED' ? 'SATISFIED (satisfied by recorded evidence)' : status}:
+                    </span>
+                    <span className="mono" style={{ color: 'var(--text-secondary)' }}>
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Requirements Table */}
+            <div className="table-container" style={{ marginTop: '1.25rem' }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Requirement ID</th>
+                    <th>Status</th>
+                    <th>Per-Test Outcomes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {coverageEntries.map(([reqId, status]) => {
+                    const color = getCoverageColor(status);
+                    const label = status === 'SATISFIED' ? 'SATISFIED (satisfied by recorded evidence)' : status;
+                    return (
+                      <tr key={reqId}>
+                        <td className="mono" style={{ fontWeight: 600, color: 'var(--accent-cyan)' }}>
+                          {reqId}
+                        </td>
+                        <td>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '0.2rem 0.55rem',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              backgroundColor: `${color}22`,
+                              border: `1px solid ${color}66`,
+                              color: color,
+                            }}
+                          >
+                            {label}
+                          </span>
+                        </td>
+                        <td style={{ color: 'var(--text-muted)' }}>N/A</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* (c) 11 Quality Checks Breakdown */}
       <div className="card">
         <div className="card-title">
           <span>📊 Quality Score Checks (11 Scored Rules)</span>
@@ -341,7 +544,7 @@ interface SourceRefItem {
       <div className="card">
         <div className="card-title">
           <span>
-            🔍 Findings ({findings.length})
+            🔍 Findings (Total: {analysis.finding_count})
           </span>
           <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
             Click a row to inspect source rows and record review
@@ -436,7 +639,13 @@ interface SourceRefItem {
           </div>
         ) : findings.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
-            No findings match the selected filters.
+            <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>🔎</div>
+            <div style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
+              No findings match the selected filters.
+            </div>
+            <div style={{ fontSize: '0.8125rem' }}>
+              Try resetting or adjusting the severity, rule, class, or review status filters above.
+            </div>
           </div>
         ) : (
           <div className="table-container">

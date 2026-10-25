@@ -35,6 +35,22 @@ export class ApiError extends Error {
   }
 }
 
+async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  try {
+    return await fetch(input, init);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      throw err;
+    }
+    throw new ApiError(
+      0,
+      'BACKEND_UNREACHABLE',
+      'Backend server is unreachable. Please verify that the backend service is running on port 8000.',
+      [err instanceof Error ? err.message : String(err)]
+    );
+  }
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     let errorCode = `HTTP_${res.status}`;
@@ -66,7 +82,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
  * List all analyses.
  */
 export async function listAnalyses(): Promise<AnalysisSummary[]> {
-  const res = await fetch('/api/v1/analyses', {
+  const res = await apiFetch('/api/v1/analyses', {
     method: 'GET',
     headers: { Accept: 'application/json' },
     cache: 'no-store',
@@ -78,7 +94,7 @@ export async function listAnalyses(): Promise<AnalysisSummary[]> {
  * Get detailed analysis record by ID.
  */
 export async function getAnalysis(id: string): Promise<AnalysisDetail> {
-  const res = await fetch(`/api/v1/analyses/${encodeURIComponent(id)}`, {
+  const res = await apiFetch(`/api/v1/analyses/${encodeURIComponent(id)}`, {
     method: 'GET',
     headers: { Accept: 'application/json' },
     cache: 'no-store',
@@ -90,7 +106,7 @@ export async function getAnalysis(id: string): Promise<AnalysisDetail> {
  * Create analysis from sample dataset ('clean' or 'fault').
  */
 export async function createAnalysisFromSample(sample: 'clean' | 'fault'): Promise<AnalysisDetail> {
-  const res = await fetch(`/api/v1/analyses?sample=${encodeURIComponent(sample)}`, {
+  const res = await apiFetch(`/api/v1/analyses?sample=${encodeURIComponent(sample)}`, {
     method: 'POST',
     headers: { Accept: 'application/json' },
   });
@@ -110,7 +126,7 @@ export async function createAnalysisFromFiles(
   formData.append('test_results', testResults, testResults.name);
   formData.append('telemetry', telemetry, telemetry.name);
 
-  const res = await fetch('/api/v1/analyses', {
+  const res = await apiFetch('/api/v1/analyses', {
     method: 'POST',
     headers: { Accept: 'application/json' },
     body: formData,
@@ -144,7 +160,7 @@ export async function getFindings(id: string, filters?: FindingFilters): Promise
   }
 
   const qs = params.toString() ? `?${params.toString()}` : '';
-  const res = await fetch(`/api/v1/analyses/${encodeURIComponent(id)}/findings${qs}`, {
+  const res = await apiFetch(`/api/v1/analyses/${encodeURIComponent(id)}/findings${qs}`, {
     method: 'GET',
     headers: { Accept: 'application/json' },
     cache: 'no-store',
@@ -156,7 +172,7 @@ export async function getFindings(id: string, filters?: FindingFilters): Promise
  * Get requirement coverage map for an analysis.
  */
 export async function getCoverage(id: string): Promise<Record<string, string>> {
-  const res = await fetch(`/api/v1/analyses/${encodeURIComponent(id)}/coverage`, {
+  const res = await apiFetch(`/api/v1/analyses/${encodeURIComponent(id)}/coverage`, {
     method: 'GET',
     headers: { Accept: 'application/json' },
     cache: 'no-store',
@@ -172,7 +188,7 @@ export async function getDatasetPreview(
   kind: string,
   limit = 20
 ): Promise<DatasetPreviewResponse> {
-  const res = await fetch(
+  const res = await apiFetch(
     `/api/v1/analyses/${encodeURIComponent(id)}/datasets/${encodeURIComponent(kind)}/preview?limit=${limit}`,
     {
       method: 'GET',
@@ -190,7 +206,7 @@ export async function updateFindingReview(
   findingId: string,
   review: ReviewUpdateRequest
 ): Promise<ReviewResponse> {
-  const res = await fetch(`/api/v1/findings/${encodeURIComponent(findingId)}/review`, {
+  const res = await apiFetch(`/api/v1/findings/${encodeURIComponent(findingId)}/review`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -207,3 +223,40 @@ export async function updateFindingReview(
 export function getSampleZipUrl(sample: 'clean' | 'fault'): string {
   return `/api/v1/samples/${sample}.zip`;
 }
+
+/**
+ * Get exported report content as plain text (Markdown, JSON, or CSV).
+ */
+export async function getExportText(id: string, format: 'md' | 'json' | 'csv' = 'md'): Promise<string> {
+  const res = await apiFetch(`/api/v1/analyses/${encodeURIComponent(id)}/export?format=${encodeURIComponent(format)}`, {
+    method: 'GET',
+    headers: { Accept: '*/*' },
+    cache: 'no-store',
+  });
+  if (!res.ok) {
+    let errorCode = `HTTP_${res.status}`;
+    let errorMessage = `Request failed with status ${res.status}`;
+    let errorDetails: string[] = [];
+
+    try {
+      const data = await res.json();
+      if (data && typeof data === 'object' && 'error' in data) {
+        errorCode = data.error.code || errorCode;
+        errorMessage = data.error.message || errorMessage;
+        errorDetails = Array.isArray(data.error.details) ? data.error.details : [];
+      }
+    } catch {
+      // not json
+    }
+    throw new ApiError(res.status, errorCode, errorMessage, errorDetails);
+  }
+  return res.text();
+}
+
+/**
+ * URL for downloading export file directly.
+ */
+export function getExportDownloadUrl(id: string, format: 'md' | 'json' | 'csv'): string {
+  return `/api/v1/analyses/${encodeURIComponent(id)}/export?format=${encodeURIComponent(format)}`;
+}
+
