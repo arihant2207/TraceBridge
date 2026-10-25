@@ -631,8 +631,8 @@ def check_r04(
 def check_r05(
     req_rows: Any,
     test_rows: Any,
-    tel_rows: Any,
-    ruleset: dict[str, Any],
+    tel_rows_or_ruleset: Any = None,
+    ruleset: dict[str, Any] | None = None,
 ) -> list[Finding]:
     """R05 Unknown requirement reference | High | VALIDATION_FAILURE.
 
@@ -640,6 +640,11 @@ def check_r05(
     (rows with other defects still count as present).
     One finding per test row. Case-sensitive. Blanks are R01, not R05.
     """
+    if ruleset is None:
+        if isinstance(tel_rows_or_ruleset, dict):
+            ruleset = tel_rows_or_ruleset
+        else:
+            ruleset = {}
     severity, finding_class = _get_rule_meta(ruleset, "R05")
     findings: list[Finding] = []
 
@@ -690,16 +695,24 @@ def check_r05(
 # R06: Unknown run reference
 # =============================================================================
 def check_r06(
-    req_rows: Any,
-    test_rows: Any,
-    tel_rows: Any,
-    ruleset: dict[str, Any],
+    test_rows_or_req: Any,
+    tel_rows_or_test: Any,
+    ruleset_or_tel: Any = None,
+    ruleset: dict[str, Any] | None = None,
 ) -> list[Finding]:
     """R06 Unknown run reference | Medium | VALIDATION_FAILURE.
 
     Distinct non-blank telemetry run_id not among non-blank run_id in test_results
     (any status or quality). One finding per run_id, rows grouped.
     """
+    if ruleset is not None:
+        test_rows = tel_rows_or_test
+        tel_rows = ruleset_or_tel
+    else:
+        test_rows = test_rows_or_req
+        tel_rows = tel_rows_or_test
+        ruleset = ruleset_or_tel if isinstance(ruleset_or_tel, dict) else {}
+
     severity, finding_class = _get_rule_meta(ruleset, "R06")
     findings: list[Finding] = []
 
@@ -751,27 +764,199 @@ def check_r06(
     return findings
 
 
-# =============================================================================
-# Combined runner for M2
-# =============================================================================
 def run_rules_m2(
-    requirements: Any,
-    test_results: Any,
-    telemetry: Any,
+    req_rows: Any,
+    test_rows: Any,
+    tel_rows: Any,
     ruleset: dict[str, Any],
 ) -> list[Finding]:
-    """Execute validation rules R01 through R06 and return canonically sorted findings.
-
-    Findings are sorted by (rule_id, entity_key) per SPEC section 3.
-    """
+    """Execute all M2 validation rules R01 through R06."""
     findings: list[Finding] = []
-    findings.extend(check_r01(requirements, test_results, telemetry, ruleset))
-    findings.extend(check_r02(requirements, test_results, telemetry, ruleset))
-    findings.extend(check_r03(requirements, test_results, telemetry, ruleset))
-    findings.extend(check_r04(requirements, test_results, telemetry, ruleset))
-    findings.extend(check_r05(requirements, test_results, telemetry, ruleset))
-    findings.extend(check_r06(requirements, test_results, telemetry, ruleset))
-
-    # Sort canonically by (rule_id, entity_key)
+    findings.extend(check_r01(req_rows, test_rows, tel_rows, ruleset))
+    findings.extend(check_r02(req_rows, test_rows, tel_rows, ruleset))
+    findings.extend(check_r03(req_rows, test_rows, tel_rows, ruleset))
+    findings.extend(check_r04(req_rows, test_rows, tel_rows, ruleset))
+    findings.extend(check_r05(req_rows, test_rows, ruleset))
+    findings.extend(check_r06(test_rows, tel_rows, ruleset))
     findings.sort(key=lambda f: (f.rule_id, f.entity_key))
     return findings
+
+
+# =============================================================================
+# R07: Missing requirement-to-test link
+# =============================================================================
+def check_r07(
+    req_rows: Any,
+    test_rows: Any,
+    ruleset: dict[str, Any],
+) -> list[Finding]:
+    """R07 Missing requirement-to-test link | High | MISSING_EVIDENCE.
+
+    Per requirement_id: links = test rows with that requirement_id.
+    Covered if any link has valid status Pass or Fail (even if the row has other defects).
+    - Variant NO_TEST: zero links.
+    - Variant NOT_EXECUTED: links exist but all are Not Run or have an invalid status.
+    """
+    severity, finding_class = _get_rule_meta(ruleset, "R07")
+    findings: list[Finding] = []
+
+    reqs = _extract_rows(req_rows)
+    tests = _extract_rows(test_rows)
+
+    tests_by_req: dict[str, list[RowData]] = {}
+    for t in tests:
+        req_id = t.get("requirement_id", "").strip()
+        if req_id:
+            tests_by_req.setdefault(req_id, []).append(t)
+
+    seen_req_ids: set[str] = set()
+    for r in reqs:
+        req_id = r.get("requirement_id", "").strip()
+        if not req_id or req_id in seen_req_ids:
+            continue
+        seen_req_ids.add(req_id)
+
+        linked_tests = tests_by_req.get(req_id, [])
+        if not linked_tests:
+            findings.append(
+                Finding(
+                    rule_id="R07",
+                    variant="NO_TEST",
+                    severity=severity,
+                    finding_class=finding_class,
+                    entity_key=req_id,
+                    description=f"Requirement {req_id} has zero linking test rows (NO_TEST)",
+                    expected="At least one test row with status Pass or Fail",
+                    actual="0 linking test rows",
+                    source_refs=[
+                        SourceRef(
+                            file="requirements.csv",
+                            row_number=r.row_number,
+                            record_id=req_id,
+                            fields=dict(r),
+                        )
+                    ],
+                )
+            )
+        else:
+            executed_tests = [
+                t for t in linked_tests if t.get("status", "").strip() in ("Pass", "Fail")
+            ]
+            if not executed_tests:
+                refs = [
+                    SourceRef(
+                        file="requirements.csv",
+                        row_number=r.row_number,
+                        record_id=req_id,
+                        fields=dict(r),
+                    )
+                ]
+                for t in linked_tests:
+                    refs.append(
+                        SourceRef(
+                            file="test_results.csv",
+                            row_number=t.row_number,
+                            record_id=t.get("test_id", f"test_results.csv#{t.row_number}"),
+                            fields=dict(t),
+                        )
+                    )
+                findings.append(
+                    Finding(
+                        rule_id="R07",
+                        variant="NOT_EXECUTED",
+                        severity=severity,
+                        finding_class=finding_class,
+                        entity_key=req_id,
+                        description=(
+                            f"Requirement {req_id} has {len(linked_tests)} test rows "
+                            f"but none executed with Pass or Fail (NOT_EXECUTED)"
+                        ),
+                        expected="At least one test row with status Pass or Fail",
+                        actual=f"{len(linked_tests)} test rows, all Not Run or invalid status",
+                        source_refs=refs,
+                    )
+                )
+
+    return findings
+
+
+# =============================================================================
+# Unit Registry & R11 helper
+# =============================================================================
+UNIT_REGISTRY: dict[str, str] = {
+    "°C": "temperature",
+    "K": "temperature",
+    "A": "current",
+    "mA": "current",
+    "V": "voltage",
+    "mV": "voltage",
+}
+
+
+def check_r11_unit(
+    req_unit: str,
+    test_unit: str,
+    tel_units: list[str],
+) -> str | None:
+    """Check unit combination. Return variant string if failed, or None if valid.
+
+    Variants: UNKNOWN_UNIT, DIMENSION_MISMATCH, UNIT_MISMATCH.
+    """
+    all_units = [req_unit, test_unit] + tel_units
+    for u in all_units:
+        if u not in UNIT_REGISTRY:
+            return "UNKNOWN_UNIT"
+
+    dims = {UNIT_REGISTRY[u] for u in all_units}
+    if len(dims) > 1:
+        return "DIMENSION_MISMATCH"
+
+    if len(set(all_units)) > 1:
+        return "UNIT_MISMATCH"
+
+    return None
+
+
+# =============================================================================
+# Aggregation Helper
+# =============================================================================
+def find_extremum(rows: list[RowData], op: str) -> tuple[Decimal, RowData]:
+    """Find aggregate value and extremum row.
+
+    For < and <=: max; for > and >=: min.
+    Ties list the earliest timestamp.
+    """
+    is_max = op in ("<", "<=")
+    best_val: Decimal | None = None
+    best_row: RowData | None = None
+    best_dt: datetime | None = None
+
+    for r in rows:
+        val = Decimal(r.get("value", "0"))
+        dt = datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00"))
+        if best_val is None:
+            best_val = val
+            best_row = r
+            best_dt = dt
+        else:
+            if is_max:
+                if val > best_val:
+                    best_val = val
+                    best_row = r
+                    best_dt = dt
+                elif val == best_val and best_dt is not None and dt < best_dt:
+                    best_row = r
+                    best_dt = dt
+            else:
+                if val < best_val:
+                    best_val = val
+                    best_row = r
+                    best_dt = dt
+                elif val == best_val and best_dt is not None and dt < best_dt:
+                    best_row = r
+                    best_dt = dt
+
+    if best_val is None or best_row is None:
+        raise ValueError("Cannot find extremum in empty rows")
+    return best_val, best_row
+

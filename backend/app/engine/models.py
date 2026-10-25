@@ -77,3 +77,15 @@ class Finding(BaseModel):
         if len(self.source_refs) > 20:
             object.__setattr__(self, "source_refs", self.source_refs[:20])
             object.__setattr__(self, "truncated", True)
+
+
+class Evaluation(BaseModel):
+    """Evaluation record for an executed test."""
+
+    test_id: str
+    outcome: str  # "SATISFIED" | "VIOLATED" | "INCONCLUSIVE"
+    aggregate: str | None = None
+    n_in_window: int = 0
+    n_out_of_window: int = 0
+    blocked_by: list[str] = Field(default_factory=list)
+
